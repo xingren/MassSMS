@@ -2,7 +2,10 @@ package com.icetea.masssms;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.IllegalFormatCodePointException;
 import java.util.WeakHashMap;
+
+import com.icetea.masssms.adapter.SelSpinnerAdapter;
 
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -11,9 +14,12 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.R.integer;
+import android.app.ActionBar;
+import android.app.ActionBar.OnNavigationListener;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.FragmentTransaction;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -23,6 +29,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.DialogInterface.OnDismissListener;
 import android.database.Cursor;
+import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -31,15 +38,17 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.SpinnerAdapter;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnNavigationListener {
 
 	
 
@@ -71,6 +80,10 @@ public class MainActivity extends Activity {
     Button okBtn,cancleBtn;
     static int sendCount = 0;
     
+    InputMessageFragment mInputMessageFragment;
+    ShowProgressFragment mShowProgressFragment;
+    ActionBar mActionBar;
+    private boolean isInputMessageFragment;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -91,6 +104,10 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
+				
+				if(mInputMessageFragment == null || mInputMessageFragment.getMessageText() == null || TextUtils.isEmpty(mInputMessageFragment.getMessageText()))
+					return;
+				
 				StringBuilder builder = new StringBuilder();
 				
 				boolean[] selected = mContactsAdapter.getSelected();
@@ -101,7 +118,7 @@ public class MainActivity extends Activity {
 					}
 				}
 				SendTextTask task = new SendTextTask();
-				task.execute(builder.toString(),sendText.getText().toString());
+				task.execute(builder.toString(),mInputMessageFragment.getMessageText().toString());
 			}
 		});
 		
@@ -110,8 +127,17 @@ public class MainActivity extends Activity {
 		dialogBuilder.setCancelable(true);
 		selectedDialog = dialogBuilder.create();
 		
+		mActionBar = getActionBar();
+		mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+		mActionBar.setListNavigationCallbacks(new SelSpinnerAdapter(this), this);
+		mInputMessageFragment = new InputMessageFragment();
+		mShowProgressFragment = new ShowProgressFragment();
 		
-		
+		FragmentTransaction ft = getFragmentManager().beginTransaction();
+		ft.replace(R.id.fragment_id, mInputMessageFragment);
+		ft.show(mInputMessageFragment);
+		ft.commit();
+		isInputMessageFragment = true;
 	}
 	
 	@Override
@@ -189,6 +215,7 @@ public class MainActivity extends Activity {
 		}
 	};
 	
+	
 	class SendTextTask extends AsyncTask<String, Integer, Void>{
 
 		@Override
@@ -237,5 +264,38 @@ public class MainActivity extends Activity {
 		
 	}
 	
+	public void showSelDialog(){
+		mContactsAdapter.clearSelected();
+		selectedDialog.show();
+	}
+	
+	public void sendMessageText(String text){
+		
+	}
+
+	@Override
+	public boolean onNavigationItemSelected(int itemPosition, long itemId) {
+		// TODO Auto-generated method stub
+		
+		if(isInputMessageFragment && itemPosition == 0 || !isInputMessageFragment && itemPosition == 1)
+			return false;
+		
+		FragmentTransaction ft = getFragmentManager().beginTransaction();
+		switch (itemPosition) {
+		case 0:
+			ft.replace(R.id.fragment_id, mInputMessageFragment);
+			ft.show(mInputMessageFragment);
+			isInputMessageFragment = true;
+			break;
+		case 1:
+			ft.replace(R.id.fragment_id, mShowProgressFragment);
+			ft.show(mShowProgressFragment);
+			isInputMessageFragment = false;
+			break;
+		}
+		ft.commit();
+
+		return false;
+	}
 	
 }

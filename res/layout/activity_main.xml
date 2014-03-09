@@ -8,6 +8,10 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity" >
 
-
+	<FragmentLayout
+	    android:id="@+id/fragment_id"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    />
 
 </RelativeLayout>
